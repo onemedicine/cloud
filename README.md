@@ -1,6 +1,6 @@
 # Island
 
-Just my own little cloud via Docker
+Just my own little cloud via Docker. This is almost working, just a bit experimental... don't panic
 
 ## Setup
 
@@ -42,10 +42,10 @@ docker exec -ti island_redis_1 redis-cli MONITO
 - [x] Synchronisation (via Nextcloud (alternative, SyncThing))
 - [ ] Backup (via Duplicati)
 - [ ] Media via Plex
-- [ ] IRC via TheLounge
+- [X] IRC via TheLounge
 - [ ] Torrents via Transmission web
 - [ ] Books via COPS
-- [ ] VPN via OpenVPN AS
+- [ ] VPN via SoftEther
 - [ ] Money stuff via Kresus
 - [ ] Mail via Mailu
 
