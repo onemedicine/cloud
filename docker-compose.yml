@@ -1,0 +1,310 @@
+version: '3.4'
+
+###############################################################################
+#                                   Network                                   #
+###############################################################################
+
+networks:
+  web:
+  backend:
+    internal: true
+
+###############################################################################
+#                                  Web zone                                   #
+###############################################################################
+
+services:
+  traefik:
+    image: traefik
+    command:
+      - --accesslogsfile=/etc/traefik/access.log
+      # - --web
+      - --docker
+      - --docker.watch
+      - --docker.domain=${DOMAIN}
+      - --docker.exposedByDefault=false
+      - --entrypoints=Name:http Address::80 Redirect.EntryPoint:https
+      - --entryPoints=Name:https Address::443 TLS
+      - --defaultentrypoints=http,https
+      - --acme
+      - --acme.entrypoint=https
+      - --acme.domains=${DOMAIN}
+      - --acme.email=${ADMIN}@${DOMAIN}
+      - --acme.onDemand
+      - --acme.onHostRule
+      - --acme.storage=/etc/traefik/acme/acme.json
+      - --logLevel=DEBUG
+      - --sendAnonymousUsage=false 
+    # labels:
+    #   - "traefik.enable=true"
+    #   - "traefik.backend=traefik"
+    #   - "traefik.port=8080"
+    #   - "traefik.frontend.auth.basic=${ADMIN}:${ADMIN_HTPASSWD}"
+    #   - "traefik.frontend.rule=Host:traefik.${DOMAIN}"
+    networks:
+      - web
+      - backend
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "/dev/null:/traefik.toml"
+      - "${DATA_DIR}/traefik:/etc/traefik"
+
+###############################################################################
+#                                     App                                     #
+###############################################################################
+
+  ghost:
+    image: ghost:alpine
+    env_file: .env
+    environment:
+      NODE_ENV: "production"
+      url: "https://blog.${DOMAIN}"
+      privacy__useTinfoil: "true"
+      # database__client: "mysql"
+      # database__connection__host: "mariadb"
+      # database__connection__port: "3306"
+      # database__connection__user: "ghost"
+      # database__connection__password: "${GHOST_DB_PASSWORD}"
+      # database__connection__database: "ghost"
+      mail__transport: "SMTP"
+      mail__options__service: "${MAIL_SERVICE}"
+      mail__options__auth__user: "${ADMIN}@${DOMAIN}"
+      mail__options__auth__pass: "${MAIL_PASSWORD}"
+    networks:
+      - web
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
+      - "${DATA_DIR}/ghost:/var/lib/ghost/content"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=ghost"
+      - "traefik.network=island_web"
+      - "traefik.port=2368"
+      - "traefik.frontend.rule=Host:${DOMAIN},blog.${DOMAIN}"
+
+  nextcloud:
+    image: nextcloud:13
+    networks:
+      - web
+      - backend
+    env_file: .env.nextcloud
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
+      - "${DATA_DIR}/nextcloud/apps:/var/www/html/custom_apps"
+      - "${DATA_DIR}/nextcloud/config:/var/www/html/config"
+      - "${DATA_DIR}/nextcloud/data:/var/www/html/data"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=nextcloud"
+      - "traefik.network=island_web"
+      - "traefik.port=80"
+      - "traefik.frontend.rule=Host:cloud.${DOMAIN}"
+
+  thelounge:
+    image: thelounge/lounge:alpine
+    networks:
+      - web
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
+      - "${DATA_DIR}/thelounge:/home/lounge/data"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=thelounge"
+      - "traefik.port=9000"
+      - "traefik.frontend.rule=Host:irc.${DOMAIN}"
+
+  mailpile:
+    build: 
+      context: "https://github.com/mailpile/mailpile"
+    image: mailpile/mailpile:master
+    networks:
+      - web
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
+      - "${DATA_DIR}/mailpile/data:/home/mailpile/.local/share/Mailpile"
+      - "${DATA_DIR}/mailpile/gpg:/home/mailpile/.gnupg"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=mailpile"
+      - "traefik.network=island_web"
+      - "traefik.port=33411"
+      - "traefik.frontend.rule=Host:mail.${DOMAIN},webmail.${DOMAIN}"
+
+
+  # mattermost:
+  #   image: mattermost/mattermost-prod-app
+  #   networks:
+  #     - web
+  #   env_file: .env.mattermost
+  #   volumes:
+  #     - "/etc/localtime:/etc/localtime:ro"
+  #     - "${DATA_DIR}/thelounge:/home/lounge/data"
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.backend=mattermost"
+  #     - "traefik.frontend.rule=Host:mattermost.${DOMAIN},mm.${DOMAIN}"
+
+  # kresus:
+  #   image: bnjbvr/kresus
+  #   networks:
+  #     - web
+  #   volumes:
+  #     - "/etc/localtime:/etc/localtime:ro"
+  #     - "${DATA_DIR}/kresus/data:/home/user/data"
+  #     - "${DATA_DIR}/kresus/weboob:/weboob"
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.backend=kresus"
+  #     - "traefik.network=island_web"
+  #     - "traefik.port=9876"
+  #     - "traefik.frontend.auth.basic=${ADMIN}:${ADMIN_HTPASSWD}"
+  #     - "traefik.frontend.rule=Host:kresus.${DOMAIN}"
+
+  # duplicati:
+  #   image: linuxserver/duplicati
+  #   networks:
+  #     - web
+  #   env_file: .env
+  #   environment:
+  #     PUID: 8426
+  #     PGID: 8426
+  #   volumes:
+  #     - "/etc/localtime:/etc/localtime:ro"
+  #     - "${DATA_DIR}/duplicati/config:/config"
+  #     - "${DATA_DIR}/duplicati/backups:/backups"
+  #     - "${DATA_DIR}/duplicati/source:/source"
+  #   labels: 
+  #     - "traefik.enable=true"
+  #     - "traefik.port=8200"
+  #     - "traefik.backend=duplicati"
+  #     - "traefik.network=web"
+  #     # - "traefik.frontend.auth.basic=${ADMIN}:${ADMIN_HTPASSWD}"
+  #     - "traefik.frontend.rule=Host:duplicati.${DOMAIN}"
+
+  softether:
+    image: siomiz/softethervpn:openvpn
+    networks:
+      - web
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - target: 1194
+        published: 1194
+        protocol: udp
+        mode: host
+      - target: 5555
+        published: 5555
+        protocol: tcp
+        mode: host
+    env_file: .env.softether
+    volumes: 
+       - "/etc/localtime:/etc/localtime:ro"
+    labels:
+      - "traefik.enable=false"
+      - "traefik.port=443"
+      - "traefik.backend=vpn"
+      - "traefik.network=web"
+      - "traefik.frontend.rule=Host:vpn.${DOMAIN},freedom.${DOMAIN}"
+
+
+###############################################################################
+#                               Internal zone                                 #
+###############################################################################
+
+  # mariadb:
+  #   image: mariadb
+  #   env_file: .env
+  #   networks:
+  #     - backend
+  #   volumes:
+  #     - "/etc/localtime:/etc/localtime:ro"
+  #     - "${DATA_DIR}/mariadb/data:/var/lib/mysql"
+  #     # - "${DATA_DIR}/island/scripts/database.sql:/docker-entrypoint-initdb.d/database.sql"
+  #   labels:
+  #     - "traefik.enable=false"
+
+  postgres:
+    image: postgres:alpine
+    env_file: .env
+    # command:
+    #   - postgres
+    #   - -c 'max_connections=200'
+    #   - -c 'shared_buffers=1GB'
+    #   - -c 'effective_cache_size=3GB'
+    #   - -c 'work_mem=5242kB'
+    #   - -c 'maintenance_work_mem=256MB'
+    #   - -c 'min_wal_size=1GB'
+    #   - -c 'max_wal_size=2GB'
+    #   - -c 'checkpoint_completion_target=0.7'
+    #   - -c 'wal_buffers=16MB'
+    #   - -c 'default_statistics_target=100'
+    #   - -c 'random_page_cost=4'
+    networks:
+      - backend
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
+      - "${DATA_DIR}/postgres/data:/var/lib/postgresql/data"
+      - "${DATA_DIR}/island/scripts/nextcloud.sql:/docker-entrypoint-initdb.d/nextcloud.sql"
+    labels:
+      - "traefik.enable=false"
+
+  redis:
+    image: redis:alpine
+    networks:
+      - backend
+    sysctls:
+      - net.core.somaxconn=4096
+    volumes:
+      - "${DATA_DIR}/redis:/data"
+    labels:
+      - "traefik.enable=false"
+
+  # https://www.docker.elastic.co/
+  elasticsearch:
+    build: elasticsearch
+    networks:
+      - backend
+    env_file: .env.elasticsearch
+    # sysctls:
+    #   - vm.max_map_count=262145
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ${DATA_DIR}/elasticsearch:/usr/share/elasticsearch/data
+    labels:
+      - "traefik.enable=false"
+
+  # solr:
+  #   image: solr:7-slim
+  #   networks:
+  #     - backend
+  #   volumes:
+  #     - "/etc/localtime:/etc/localtime:ro"
+  #     - "${DATA_DIR}/solr:/opt/solr/server/solr/mycores"
+  #   entrypoint:
+  #     - docker-entrypoint.sh
+  #     - solr-precreate
+  #     - nextant
+  #   labels:
+  #     - "traefik.enable=false"
+
+  # adminer:
+  #   image: adminer
+  #   networks:
+  #     - backend
+  #   volumes:
+  #     - "/etc/localtime:/etc/localtime:ro"
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.port=8080"
+  #     - "traefik.backend=adminer"
+  #     - "traefik.network=backend"
+  #     - "traefik.frontend.auth.basic=${ADMIN}:${ADMIN_HTPASSWD}"
+  #     - "traefik.frontend.rule=Host:adminer.${DOMAIN}"
+
