@@ -16,14 +16,20 @@ Finally `post_install.sh`
 
 To be automated
 
-In `/data/nextcloud/config/config.php`, replace `'memcache.local' => '\\OC\\Memcache\\APCu',` by the following
+In `/data/nextcloud/config/config.php`, setup cache like this
 
 ```
-'memcache.local' => '\\OC\\Memcache\\Redis',
-'redis' => array(
-   'host' => 'redis',
-   'port' => 6379,
-),
+?php
+$CONFIG = array (
+  'htaccess.RewriteBase' => '/',
+  'memcache.local' => '\\OC\\Memcache\\APCu',
+  'memcache.locking' => '\\OC\\Memcache\\Redis',
+  'redis' => 
+  array (
+    'host' => 'redis',
+    'port' => 6379,
+  ),
+  'apps_paths' =>
 ```
 
 Then `docker-compose restart nextcloud`
