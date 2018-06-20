@@ -6,7 +6,7 @@ version: '3.4'
 
 networks:
   web:
-  backend:
+  internal:
     internal: true
 
 ###############################################################################
@@ -15,10 +15,11 @@ networks:
 
 services:
   traefik:
-    image: traefik
+    image: traefik:alpine
+    restart: always
     command:
       - --accesslogsfile=/etc/traefik/access.log
-      # - --web
+      - --api.dashboard # Replace --web
       - --docker
       - --docker.watch
       - --docker.domain=${DOMAIN}
@@ -27,23 +28,24 @@ services:
       - --entryPoints=Name:https Address::443 TLS
       - --defaultentrypoints=http,https
       - --acme
+      - --acme.httpChallenge.entryPoint=http
       - --acme.entrypoint=https
       - --acme.domains=${DOMAIN}
       - --acme.email=${ADMIN}@${DOMAIN}
-      - --acme.onDemand
+      # - --acme.onDemand # Deprecated https://github.com/containous/traefik/issues/2212#issuecomment-359703331
       - --acme.onHostRule
       - --acme.storage=/etc/traefik/acme/acme.json
-      - --logLevel=DEBUG
+      # - --logLevel=DEBUG
       - --sendAnonymousUsage=false 
-    # labels:
-    #   - "traefik.enable=true"
-    #   - "traefik.backend=traefik"
-    #   - "traefik.port=8080"
-    #   - "traefik.frontend.auth.basic=${ADMIN}:${ADMIN_HTPASSWD}"
-    #   - "traefik.frontend.rule=Host:traefik.${DOMAIN}"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=traefik"
+      - "traefik.port=8080"
+      - "traefik.frontend.auth.basic=${ADMIN}:$$apr1$$acldxzHL$$aIE2PcUEFioj4PyUvBw/Q."
+      - "traefik.frontend.rule=Host:traefik.${DOMAIN}"
     networks:
       - web
-      - backend
+      - internal
     ports:
       - "80:80"
       - "443:443"
@@ -54,28 +56,15 @@ services:
       - "${DATA_DIR}/traefik:/etc/traefik"
 
 ###############################################################################
-#                                     App                                     #
+#                                  App                                        #
 ###############################################################################
 
   ghost:
     image: ghost:alpine
-    env_file: .env
-    environment:
-      NODE_ENV: "production"
-      url: "https://blog.${DOMAIN}"
-      privacy__useTinfoil: "true"
-      # database__client: "mysql"
-      # database__connection__host: "mariadb"
-      # database__connection__port: "3306"
-      # database__connection__user: "ghost"
-      # database__connection__password: "${GHOST_DB_PASSWORD}"
-      # database__connection__database: "ghost"
-      mail__transport: "SMTP"
-      mail__options__service: "${MAIL_SERVICE}"
-      mail__options__auth__user: "${ADMIN}@${DOMAIN}"
-      mail__options__auth__pass: "${MAIL_PASSWORD}"
+    restart: always
+    env_file: .env.ghost
     networks:
-      - web
+      - internal
     volumes:
       - "/etc/localtime:/etc/localtime:ro"
       - "${DATA_DIR}/ghost:/var/lib/ghost/content"
@@ -88,9 +77,9 @@ services:
 
   nextcloud:
     image: nextcloud:13
+    restart: always
     networks:
-      - web
-      - backend
+      - internal
     env_file: .env.nextcloud
     volumes:
       - "/etc/localtime:/etc/localtime:ro"
@@ -106,6 +95,7 @@ services:
 
   thelounge:
     image: thelounge/lounge:alpine
+    restart: always
     networks:
       - web
     volumes:
@@ -117,23 +107,22 @@ services:
       - "traefik.port=9000"
       - "traefik.frontend.rule=Host:irc.${DOMAIN}"
 
-  mailpile:
-    build: 
-      context: "https://github.com/mailpile/mailpile"
-    image: mailpile/mailpile:master
-    networks:
-      - web
-    volumes:
-      - "/etc/localtime:/etc/localtime:ro"
-      - "${DATA_DIR}/mailpile/data:/home/mailpile/.local/share/Mailpile"
-      - "${DATA_DIR}/mailpile/gpg:/home/mailpile/.gnupg"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.backend=mailpile"
-      - "traefik.network=island_web"
-      - "traefik.port=33411"
-      - "traefik.frontend.rule=Host:mail.${DOMAIN},webmail.${DOMAIN}"
-
+  # mailpile:
+  #   build: 
+  #     context: "https://github.com/mailpile/mailpile"
+  #   image: mailpile/mailpile:master
+  #   networks:
+  #     - web
+  #   volumes:
+  #     - "/etc/localtime:/etc/localtime:ro"
+  #     - "${DATA_DIR}/mailpile/data:/home/mailpile/.local/share/Mailpile"
+  #     - "${DATA_DIR}/mailpile/gpg:/home/mailpile/.gnupg"
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.backend=mailpile"
+  #     - "traefik.network=island_web"
+  #     - "traefik.port=33411"
+  #     - "traefik.frontend.rule=Host:mail.${DOMAIN},webmail.${DOMAIN}"
 
   # mattermost:
   #   image: mattermost/mattermost-prod-app
@@ -148,21 +137,25 @@ services:
   #     - "traefik.backend=mattermost"
   #     - "traefik.frontend.rule=Host:mattermost.${DOMAIN},mm.${DOMAIN}"
 
-  # kresus:
-  #   image: bnjbvr/kresus
-  #   networks:
-  #     - web
-  #   volumes:
-  #     - "/etc/localtime:/etc/localtime:ro"
-  #     - "${DATA_DIR}/kresus/data:/home/user/data"
-  #     - "${DATA_DIR}/kresus/weboob:/weboob"
-  #   labels:
-  #     - "traefik.enable=true"
-  #     - "traefik.backend=kresus"
-  #     - "traefik.network=island_web"
-  #     - "traefik.port=9876"
-  #     - "traefik.frontend.auth.basic=${ADMIN}:${ADMIN_HTPASSWD}"
-  #     - "traefik.frontend.rule=Host:kresus.${DOMAIN}"
+  kresus:
+    image: bnjbvr/kresus
+    restart: always
+    networks:
+      - web
+    environment:
+      LOCAL_USER_ID: 1000
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
+      - "${DATA_DIR}/kresus/data:/home/user/data"
+      - "${DATA_DIR}/kresus/weboob:/weboob"
+      - "${DATA_DIR}/kresus/config.ini:/opt/config.ini"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=kresus"
+      - "traefik.network=island_web"
+      - "traefik.port=9876"
+      - "traefik.frontend.auth.basic=${ADMIN}:$$apr1$$m2o7bef7$$WrzvSKua5Mi5EAbNO3FJH0"
+      - "traefik.frontend.rule=Host:kresus.${DOMAIN}"
 
   # duplicati:
   #   image: linuxserver/duplicati
@@ -185,31 +178,38 @@ services:
   #     # - "traefik.frontend.auth.basic=${ADMIN}:${ADMIN_HTPASSWD}"
   #     - "traefik.frontend.rule=Host:duplicati.${DOMAIN}"
 
-  softether:
-    image: siomiz/softethervpn:openvpn
-    networks:
-      - web
-    cap_add:
-      - NET_ADMIN
-    ports:
-      - target: 1194
-        published: 1194
-        protocol: udp
-        mode: host
-      - target: 5555
-        published: 5555
-        protocol: tcp
-        mode: host
-    env_file: .env.softether
-    volumes: 
-       - "/etc/localtime:/etc/localtime:ro"
-    labels:
-      - "traefik.enable=false"
-      - "traefik.port=443"
-      - "traefik.backend=vpn"
-      - "traefik.network=web"
-      - "traefik.frontend.rule=Host:vpn.${DOMAIN},freedom.${DOMAIN}"
+  # softether:
+  #   image: siomiz/softethervpn:openvpn
+  #   networks:
+  #     - web
+  #   cap_add:
+  #     - NET_ADMIN
+  #   ports:
+  #     - target: 1194
+  #       published: 1194
+  #       protocol: udp
+  #       mode: host
+  #     - target: 5555
+  #       published: 5555
+  #       protocol: tcp
+  #       mode: host
+  #   env_file: .env.softether
+  #   volumes: 
+  #      - "/etc/localtime:/etc/localtime:ro"
+  #      - "${DATA_DIR}/softether/vpn_server.config:/opt/vpn_server.config"
+  #   labels:
+  #     - "traefik.enable=false"
+  #     - "traefik.port=443"
+  #     - "traefik.backend=softether"
+  #     - "traefik.network=web"
+  #     - "traefik.frontend.rule=Host:vpn.${DOMAIN},softether.${DOMAIN}"
 
+  shadowsocks:
+    image: shadowsocks/shadowsocks-libev
+    restart: always
+    ports:
+      - "18388:8388"
+    env_file: .env.shadowsocks
 
 ###############################################################################
 #                               Internal zone                                 #
@@ -229,6 +229,7 @@ services:
 
   postgres:
     image: postgres:alpine
+    restart: always
     env_file: .env
     # command:
     #   - postgres
@@ -244,7 +245,7 @@ services:
     #   - -c 'default_statistics_target=100'
     #   - -c 'random_page_cost=4'
     networks:
-      - backend
+      - internal
     volumes:
       - "/etc/localtime:/etc/localtime:ro"
       - "${DATA_DIR}/postgres/data:/var/lib/postgresql/data"
@@ -254,10 +255,12 @@ services:
 
   redis:
     image: redis:alpine
+    restart: always
     networks:
-      - backend
+      - internal
     sysctls:
       - net.core.somaxconn=4096
+      # - vm.overcommit_memory=1
     volumes:
       - "${DATA_DIR}/redis:/data"
     labels:
@@ -266,11 +269,12 @@ services:
   # https://www.docker.elastic.co/
   elasticsearch:
     build: elasticsearch
+    image: localhost/elasticsearch-oss:latest
     networks:
-      - backend
+      - internal
     env_file: .env.elasticsearch
     # sysctls:
-    #   - vm.max_map_count=262145
+    #   - vm.max_map_count=262144 # bug OCI runtime create failed: sysctl "vm.max_map_count" is not in a separate kernel namespace: unknown https://github.com/moby/moby/issues/30778
     ulimits:
       memlock:
         soft: -1
@@ -308,3 +312,39 @@ services:
   #     - "traefik.frontend.auth.basic=${ADMIN}:${ADMIN_HTPASSWD}"
   #     - "traefik.frontend.rule=Host:adminer.${DOMAIN}"
 
+  # Monitoring 
+  cadvisor:
+    image: google/cadvisor
+    restart: always
+    networks:
+      - internal
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    deploy:
+      mode: global
+    labels:
+      - "traefik.enable=true"
+      - "traefik.port=8080"
+      - "traefik.backend=cadvisor"
+      - "traefik.network=backend"
+      - "traefik.frontend.auth.basic=${ADMIN}:$$apr1$$ot35v8Up$$0yTQ2LLJqsmPT5SE5W6MF/"
+      - "traefik.frontend.rule=Host:cadvisor.${DOMAIN}"
+
+  # Backup
+  restic:
+    image: lobaro/restic-backup-docker:v1.1
+    restart: always
+    networks:
+      - web
+    volumes:
+      - "${DATA_DIR}/traefik:/data/traefik"
+    env_file:
+      - .env.restic
+    labels:
+      - "traefik.enable=false"
+
+    
