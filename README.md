@@ -41,22 +41,3 @@ Check Redis being used or not
 ```
 docker exec -ti island_redis_1 redis-cli MONITO
 ```
-
-## Shopping list
-
-- [x] LetsEncrypt via Traefik
-- [x] Synchronisation (via Nextcloud (alternative, SyncThing))
-- [ ] Backup (via Duplicati)
-- [ ] Media via Plex
-- [X] IRC via TheLounge
-- [ ] Torrents via Transmission web
-- [ ] Books via COPS
-- [ ] VPN via SoftEther
-- [ ] Money stuff via Kresus
-- [ ] Mail via Mailu
-
-## Gotta play with
-
-- [ ] cAdvisor
-- [ ] Cachet
-- [ ] Portainer
