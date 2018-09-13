@@ -6,7 +6,7 @@ source $WKDIR/.env
 
 git submodule add https://github.com/mailpile/mailpile
 
-sudo mkdir -p $DATA_DIR/{nextcloud/apps,/nextcloud/config,/nextcloud/data,postgres,solr,redis,nginx,elasticsearch,mailpile}
+sudo mkdir -p $DATA_DIR/{nextcloud/apps,/nextcloud/config,/nextcloud/data,postgres,redis,mailpile,nginx,elasticsearch,torrent}
 sudo chown 33:33 $DATA_DIR/nextcloud $DATA_DIR/nextcloud/apps $DATA_DIR/nextcloud/config $DATA_DIR/nextcloud/data
 sudo chown 70:70 $DATA_DIR/postgres
 sudo chown 8983:8983 $DATA_DIR/solr
