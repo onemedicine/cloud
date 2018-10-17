@@ -40,7 +40,7 @@ services:
       - "traefik.enable=true"
       - "traefik.backend=traefik"
       - "traefik.port=8080"
-      - "traefik.frontend.auth.basic=${ADMIN}:$$apr1$$acldxzHL$$aIE2PcUEFioj4PyUvBw/Q."
+      - "traefik.frontend.auth.basic.users=${ADMIN}:$$apr1$$acldxzHL$$aIE2PcUEFioj4PyUvBw/Q."
       - "traefik.frontend.rule=Host:traefik.${DOMAIN}"
       - "traefik.frontend.headers.customFrameOptionsValue=DENY"
       - "traefik.frontend.headers.contentTypeNosniff=true"
@@ -120,6 +120,23 @@ services:
       - "traefik.frontend.headers.contentTypeNosniff=true"
       - "traefik.frontend.headers.browserXSSFilter=true"
 
+  riot:
+    image: silviof/matrix-riot-docker
+    restart: always
+    networks:
+      - web
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
+      - "${DATA_DIR}/riot:/data"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=riot"
+      - "traefik.port=80"
+      - "traefik.frontend.rule=Host:riot.${DOMAIN},matrix.${DOMAIN}"
+  #     - "traefik.frontend.headers.customFrameOptionsValue=DENY"
+  #     - "traefik.frontend.headers.contentTypeNosniff=true"
+  #     - "traefik.frontend.headers.browserXSSFilter=true"
+
   # mailpile:
   #   build: 
   #     context: "https://github.com/mailpile/mailpile"
@@ -154,7 +171,7 @@ services:
       - "traefik.backend=kresus"
       - "traefik.network=island_web"
       - "traefik.port=9876"
-      - "traefik.frontend.auth.basic=${ADMIN}:$$apr1$$m2o7bef7$$WrzvSKua5Mi5EAbNO3FJH0"
+      - "traefik.frontend.auth.basic.users=${ADMIN}:$$apr1$$m2o7bef7$$WrzvSKua5Mi5EAbNO3FJH0"
       - "traefik.frontend.rule=Host:kresus.${DOMAIN}"
       - "traefik.frontend.headers.customFrameOptionsValue=DENY"
       - "traefik.frontend.headers.contentTypeNosniff=true"
@@ -177,8 +194,8 @@ services:
   #     - "traefik.enable=true"
   #     - "traefik.port=8200"
   #     - "traefik.backend=duplicati"
-  #     - "traefik.network=web"
-  #     # - "traefik.frontend.auth.basic=${ADMIN}:${ADMIN_HTPASSWD}"
+  #     - "traefik.network=island_web"
+  #     # - "traefik.frontend.auth.basic.users=${ADMIN}:${ADMIN_HTPASSWD}"
   #     - "traefik.frontend.rule=Host:duplicati.${DOMAIN}"
 
   # softether:
@@ -204,7 +221,7 @@ services:
   #     - "traefik.enable=false"
   #     - "traefik.port=443"
   #     - "traefik.backend=softether"
-  #     - "traefik.network=web"
+  #     - "traefik.network=island_web"
   #     - "traefik.frontend.rule=Host:vpn.${DOMAIN},softether.${DOMAIN}"
 
   shadowsocks:
@@ -231,6 +248,8 @@ services:
       - "traefik.network=island_web"
       - "traefik.port=80"
       - "traefik.frontend.rule=Host:torrents.${DOMAIN}"
+      # - "traefik.frontend.auth.basic.usersFile=.htpasswd.cloudtorrent"
+      - "traefik.frontend.auth.basic.users=francois:$$apr1$$y1yJtAIV$$v9DVYcVX..ZXLehoOMsVk1,remy:$$apr1$$iiR/Mbdg$$e0c4Bjpuw5lwCpi4KA2nO0"
       - "traefik.frontend.headers.customFrameOptionsValue=DENY"
       - "traefik.frontend.headers.contentTypeNosniff=true"
       - "traefik.frontend.headers.browserXSSFilter=true"
@@ -249,7 +268,7 @@ services:
       - "traefik.network=island_web"
       - "traefik.port=8080"
       - "traefik.frontend.rule=Host:ytdl.${DOMAIN}"
-      - "traefik.frontend.auth.basic=${ADMIN}:$$apr1$$/4j3KEN2$$qwzvGtfJC2N5dAZI1suls/"
+      - "traefik.frontend.auth.basic.users=${ADMIN}:$$apr1$$/4j3KEN2$$qwzvGtfJC2N5dAZI1suls/"
       - "traefik.frontend.redirect.regex=^https?://([^/]*)/?$$"
       - "traefik.frontend.redirect.replacement=https://$$1/youtube-dl"
       - "traefik.frontend.redirect.permanent=true"
@@ -268,7 +287,7 @@ services:
   #   image: mariadb
   #   env_file: .env
   #   networks:
-  #     - backend
+  #     - internal
   #   volumes:
   #     - "/etc/localtime:/etc/localtime:ro"
   #     - "${DATA_DIR}/mariadb/data:/var/lib/mysql"
@@ -336,7 +355,7 @@ services:
   # solr:
   #   image: solr:7-slim
   #   networks:
-  #     - backend
+  #     - internal
   #   volumes:
   #     - "/etc/localtime:/etc/localtime:ro"
   #     - "${DATA_DIR}/solr:/opt/solr/server/solr/mycores"
@@ -350,38 +369,78 @@ services:
   # adminer:
   #   image: adminer
   #   networks:
-  #     - backend
+  #     - internal
   #   volumes:
   #     - "/etc/localtime:/etc/localtime:ro"
   #   labels:
   #     - "traefik.enable=true"
   #     - "traefik.port=8080"
   #     - "traefik.backend=adminer"
-  #     - "traefik.network=backend"
-  #     - "traefik.frontend.auth.basic=${ADMIN}:${ADMIN_HTPASSWD}"
+  #     - "traefik.network=island_internal"
+  #     - "traefik.frontend.auth.basic.users=${ADMIN}:${ADMIN_HTPASSWD}"
   #     - "traefik.frontend.rule=Host:adminer.${DOMAIN}"
 
   # Monitoring 
-  cadvisor:
-    image: google/cadvisor
+  # cadvisor:
+  #   image: google/cadvisor
+  #   restart: always
+  #   networks:
+  #     - internal
+  #   volumes:
+  #     - "/etc/localtime:/etc/localtime:ro"
+  #     - /:/rootfs:ro
+  #     - /var/run:/var/run:rw
+  #     - /sys:/sys:ro
+  #     - /var/lib/docker/:/var/lib/docker:ro
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.port=8080"
+  #     - "traefik.backend=cadvisor"
+  #     - "traefik.network=island_internal"
+  #     - "traefik.frontend.auth.basic.users=${ADMIN}:$$apr1$$ot35v8Up$$0yTQ2LLJqsmPT5SE5W6MF/"
+  #     - "traefik.frontend.rule=Host:cadvisor.${DOMAIN}"
+
+  # netdata:
+  #   image: titpetric/netdata
+  #   restart: always
+  #   networks:
+  #     - internal
+  #   volumes:
+  #     - "/etc/localtime:/etc/localtime:ro"
+  #     - /proc:/host/proc:ro
+  #     - /sys:/host/sys:ro
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.port=19999"
+  #     - "traefik.backend=netdata"
+  #     - "traefik.network=island_internal"
+  #     - "traefik.frontend.auth.basic.users=${ADMIN}:$$apr1$$6KCb.oNU$$FOG89Lv5PReyNPcL3cCdD1"
+  #     - "traefik.frontend.rule=Host:netdata.${DOMAIN}"
+  #     - "traefik.frontend.headers.customFrameOptionsValue=DENY"
+  #     - "traefik.frontend.headers.contentTypeNosniff=true"
+  #     - "traefik.frontend.headers.browserXSSFilter=true"
+
+  glances:
+    image: nicolargo/glances:latest-alpine
     restart: always
+    pid: host
     networks:
       - internal
     volumes:
       - "/etc/localtime:/etc/localtime:ro"
-      - /:/rootfs:ro
-      - /var/run:/var/run:rw
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-    # deploy:
-    #   mode: global
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    environment:
+      - "GLANCES_OPT=-w"
     labels:
       - "traefik.enable=true"
-      - "traefik.port=8080"
-      - "traefik.backend=cadvisor"
-      - "traefik.network=backend"
-      - "traefik.frontend.auth.basic=${ADMIN}:$$apr1$$ot35v8Up$$0yTQ2LLJqsmPT5SE5W6MF/"
-      - "traefik.frontend.rule=Host:cadvisor.${DOMAIN}"
+      - "traefik.port=61208"
+      - "traefik.backend=glances"
+      - "traefik.network=island_internal"
+      - "traefik.frontend.auth.basic.users=${ADMIN}:$$apr1$$O0LDFg8Y$$d3vfb28aMKIjdHi26MJ0g0"
+      - "traefik.frontend.rule=Host:glances.${DOMAIN}"
+      - "traefik.frontend.headers.customFrameOptionsValue=DENY"
+      - "traefik.frontend.headers.contentTypeNosniff=true"
+      - "traefik.frontend.headers.browserXSSFilter=true"
 
   # Backup
   restic:
