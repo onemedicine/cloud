@@ -61,6 +61,7 @@ services:
 #                                  App                                        #
 ###############################################################################
 
+  # Blog
   ghost:
     image: ghost:alpine
     restart: always
@@ -76,6 +77,28 @@ services:
       - "traefik.network=island_web"
       - "traefik.port=2368"
       - "traefik.frontend.rule=Host:${DOMAIN},blog.${DOMAIN}"
+      - "traefik.frontend.headers.customFrameOptionsValue=DENY"
+      - "traefik.frontend.headers.contentTypeNosniff=true"
+      - "traefik.frontend.headers.browserXSSFilter=true"
+
+  # Blog
+  hugo:
+    build: hugo
+    image: localhost/hugo
+    command: server -D
+    restart: always
+    networks:
+      - internal
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
+      - "${DATA_DIR}/hugo:/site"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=hugo"
+      - "traefik.network=island_web"
+      - "traefik.port=1313"
+      # - "traefik.frontend.rule=Host:${DOMAIN},blog.${DOMAIN}"
+      - "traefik.frontend.rule=Host:hugo.${DOMAIN}"
       - "traefik.frontend.headers.customFrameOptionsValue=DENY"
       - "traefik.frontend.headers.contentTypeNosniff=true"
       - "traefik.frontend.headers.browserXSSFilter=true"
@@ -153,6 +176,9 @@ services:
   #     - "traefik.network=island_web"
   #     - "traefik.port=33411"
   #     - "traefik.frontend.rule=Host:mail.${DOMAIN},webmail.${DOMAIN}"
+  #     - "traefik.frontend.headers.customFrameOptionsValue=DENY"
+  #     - "traefik.frontend.headers.contentTypeNosniff=true"
+  #     - "traefik.frontend.headers.browserXSSFilter=true"
 
   kresus:
     image: bnjbvr/kresus
@@ -197,6 +223,9 @@ services:
   #     - "traefik.network=island_web"
   #     # - "traefik.frontend.auth.basic.users=${ADMIN}:${ADMIN_HTPASSWD}"
   #     - "traefik.frontend.rule=Host:duplicati.${DOMAIN}"
+  #     - "traefik.frontend.headers.customFrameOptionsValue=DENY"
+  #     - "traefik.frontend.headers.contentTypeNosniff=true"
+  #     - "traefik.frontend.headers.browserXSSFilter=true"
 
   # softether:
   #   image: siomiz/softethervpn:openvpn
@@ -223,6 +252,9 @@ services:
   #     - "traefik.backend=softether"
   #     - "traefik.network=island_web"
   #     - "traefik.frontend.rule=Host:vpn.${DOMAIN},softether.${DOMAIN}"
+  #     - "traefik.frontend.headers.customFrameOptionsValue=DENY"
+  #     - "traefik.frontend.headers.contentTypeNosniff=true"
+  #     - "traefik.frontend.headers.browserXSSFilter=true"
 
   shadowsocks:
     image: shadowsocks/shadowsocks-libev
@@ -276,22 +308,40 @@ services:
       - "traefik.frontend.headers.contentTypeNosniff=true"
       - "traefik.frontend.headers.browserXSSFilter=true"
     
-
-
+  # photoprism:
+  #   image: photoprism/photoprism
+  #   restart: always
+  #   networks:
+  #     - web
+  #     - internal
+  #   env_file: .env.photoprism
+  #   volumes:
+  #     - "/etc/localtime:/etc/localtime:ro"
+  #     - "${DATA_DIR}/photoprism:/Photos"
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.backend=photoprism"
+  #     - "traefik.network=island_web"
+  #     - "traefik.port=80"
+  #     - "traefik.frontend.rule=Host:photoprism.${DOMAIN}"
+  #     - "traefik.frontend.auth.basic.users=${ADMIN}:$$apr1$$esnLsoyU$$3VtNqW13haYzEzcpnubYJ1"
+  #     - "traefik.frontend.headers.customFrameOptionsValue=DENY"
+  #     - "traefik.frontend.headers.contentTypeNosniff=true"
+  #     - "traefik.frontend.headers.browserXSSFilter=true"
 
 ###############################################################################
 #                               Internal zone                                 #
 ###############################################################################
 
   # mariadb:
-  #   image: mariadb
+  #   image: mariadb:10
   #   env_file: .env
   #   networks:
   #     - internal
   #   volumes:
   #     - "/etc/localtime:/etc/localtime:ro"
   #     - "${DATA_DIR}/mariadb/data:/var/lib/mysql"
-  #     # - "${DATA_DIR}/island/scripts/database.sql:/docker-entrypoint-initdb.d/database.sql"
+  #     - "${DATA_DIR}/island/scripts/photoprism.sql:/docker-entrypoint-initdb.d/photoprism.sql"
   #   labels:
   #     - "traefik.enable=false"
 
@@ -318,6 +368,7 @@ services:
       - "/etc/localtime:/etc/localtime:ro"
       - "${DATA_DIR}/postgres/data:/var/lib/postgresql/data"
       - "${DATA_DIR}/island/scripts/nextcloud.sql:/docker-entrypoint-initdb.d/nextcloud.sql"
+      - "${DATA_DIR}/island/scripts/photoprism.sql:/docker-entrypoint-initdb.d/photoprism.sql"
     labels:
       - "traefik.enable=false"
 
@@ -366,6 +417,7 @@ services:
   #   labels:
   #     - "traefik.enable=false"
 
+  # Database management
   # adminer:
   #   image: adminer
   #   networks:
@@ -379,6 +431,9 @@ services:
   #     - "traefik.network=island_internal"
   #     - "traefik.frontend.auth.basic.users=${ADMIN}:${ADMIN_HTPASSWD}"
   #     - "traefik.frontend.rule=Host:adminer.${DOMAIN}"
+  #     - "traefik.frontend.headers.customFrameOptionsValue=DENY"
+  #     - "traefik.frontend.headers.contentTypeNosniff=true"
+  #     - "traefik.frontend.headers.browserXSSFilter=true"
 
   # Monitoring 
   # cadvisor:
@@ -399,7 +454,11 @@ services:
   #     - "traefik.network=island_internal"
   #     - "traefik.frontend.auth.basic.users=${ADMIN}:$$apr1$$ot35v8Up$$0yTQ2LLJqsmPT5SE5W6MF/"
   #     - "traefik.frontend.rule=Host:cadvisor.${DOMAIN}"
+  #     - "traefik.frontend.headers.customFrameOptionsValue=DENY"
+  #     - "traefik.frontend.headers.contentTypeNosniff=true"
+  #     - "traefik.frontend.headers.browserXSSFilter=true"
 
+  # Monitoring 
   # netdata:
   #   image: titpetric/netdata
   #   restart: always
@@ -420,6 +479,7 @@ services:
   #     - "traefik.frontend.headers.contentTypeNosniff=true"
   #     - "traefik.frontend.headers.browserXSSFilter=true"
 
+  # Monitoring
   glances:
     image: nicolargo/glances:latest-alpine
     restart: always
