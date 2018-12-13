@@ -85,7 +85,16 @@ services:
   hugo:
     build: hugo
     image: localhost/hugo
-    command: server -D
+    command: 
+      - --baseURL=https://hugo.${DOMAIN}
+      - --appendPort=false
+      - --bind=0.0.0.0
+      - --buildDrafts
+      - --theme=bleak
+      - --cleanDestinationDir
+      - --gc
+      - --verbose
+      - server
     restart: always
     networks:
       - internal
@@ -104,9 +113,7 @@ services:
       - "traefik.frontend.headers.browserXSSFilter=true"
 
   nextcloud:
-    # build: nextcloud
-    # image: localhost/nextcloud:latest
-    image: nextcloud:13
+    image: nextcloud:15
     restart: always
     networks:
       - internal
@@ -346,7 +353,7 @@ services:
   #     - "traefik.enable=false"
 
   postgres:
-    image: postgres:alpine
+    image: postgres:10-alpine
     restart: always
     env_file: .env
     # command:
@@ -503,16 +510,16 @@ services:
       - "traefik.frontend.headers.browserXSSFilter=true"
 
   # Backup
-  restic:
-    image: lobaro/restic-backup-docker:v1.1
-    restart: always
-    networks:
-      - web
-    volumes:
-      - "${DATA_DIR}/traefik:/data/traefik"
-    env_file:
-      - .env.restic
-    labels:
-      - "traefik.enable=false"
+  # restic:
+  #   image: lobaro/restic-backup-docker
+  #   restart: always
+  #   networks:
+  #     - web
+  #   volumes:
+  #     - "${DATA_DIR}/traefik:/data/traefik"
+  #   env_file:
+  #     - .env.restic
+  #   labels:
+  #     - "traefik.enable=false"
 
     
