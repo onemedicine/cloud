@@ -1,0 +1,27 @@
+version: "3.7"
+
+networks:
+  apps:
+    external: true
+
+volumes:
+  data:
+
+services:
+  riot:
+    image: silviof/matrix-riot-docker
+    networks:
+      - apps
+    volumes:
+      - data:/data"
+    deploy:
+      restart_policy:
+        condition: on-failure
+      labels:
+        traefik.enable: "true"
+        traefik.backend: riot
+        traefik.port: 80
+        traefik.frontend.rule: Host:riot.${DOMAIN},matrix.${DOMAIN}
+        traefik.frontend.headers.customFrameOptionsValue: "DENY"
+        traefik.frontend.headers.contentTypeNosniff: "true"
+        traefik.frontend.headers.browserXSSFilter: "true"

@@ -1,4 +1,4 @@
-.env*
+**.env*
 .ftpconfig
 experimental
 .htpasswd*

@@ -1,0 +1,34 @@
+version: "3.7"
+
+networks:
+  apps:
+    external: true
+
+volumes:
+  data:
+
+services:
+  glances:
+    image: nicolargo/glances:latest-alpine
+    pid: host
+    networks:
+      - apps
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - "GLANCES_OPT=-w"
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+      labels:
+        traefik.enable: "true"
+        traefik.port: 61208
+        traefik.backend: "glances"
+        traefik.frontend.auth.basic.users: "${ADMIN}:$$apr1$$O0LDFg8Y$$d3vfb28aMKIjdHi26MJ0g0"
+        traefik.frontend.rule: "Host:glances.${DOMAIN}"
+        traefik.frontend.headers.customFrameOptionsValue: "DENY"
+        traefik.frontend.headers.contentTypeNosniff: "true"
+        traefik.frontend.headers.browserXSSFilter: "true"

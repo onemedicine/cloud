@@ -1,0 +1,29 @@
+version: "3.7"
+
+networks:
+  apps:
+    external: true
+
+volumes:
+  data:
+
+services:
+  cloudtorrent:
+    image: jpillora/cloud-torrent
+    networks:
+      - apps
+    env_file: .env
+    volumes:
+      - data:/downloads
+    deploy:
+      restart_policy:
+        condition: on-failure
+      labels:
+        traefik.enable: "true"
+        traefik.backend: cloudtorrent
+        traefik.port: 80
+        traefik.frontend.rule: Host:torrents.${DOMAIN}
+        traefik.frontend.auth.basic.users: remy:$$apr1$$iiR/Mbdg$$e0c4Bjpuw5lwCpi4KA2nO0
+        traefik.frontend.headers.customFrameOptionsValue: "DENY"
+        traefik.frontend.headers.contentTypeNosniff: "true"
+        traefik.frontend.headers.browserXSSFilter: "true"

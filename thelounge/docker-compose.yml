@@ -1,0 +1,28 @@
+version: "3.7"
+
+networks:
+  apps:
+    external: true
+
+volumes:
+  data:
+
+services:
+  thelounge:
+    image: thelounge/lounge:alpine
+    networks:
+      - apps
+    env_file: .env
+    volumes:
+      - data:/var/opt/thelounge
+    deploy:
+      restart_policy:
+        condition: on-failure
+      labels:
+        traefik.enable: "true"
+        traefik.backend: thelounge
+        traefik.port: 9000
+        traefik.frontend.rule: Host:irc.${DOMAIN}
+        traefik.frontend.headers.customFrameOptionsValue: "DENY"
+        traefik.frontend.headers.contentTypeNosniff: "true"
+        traefik.frontend.headers.browserXSSFilter: "true"

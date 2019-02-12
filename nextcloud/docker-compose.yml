@@ -1,0 +1,85 @@
+version: "3.7"
+
+networks:
+  apps:
+    external: true
+  nextcloud:
+
+volumes:
+  apps:
+  config:
+  data:
+  postgres:
+  elasticsearch:
+  redis
+
+services:
+  nextcloud:
+    build: .
+    image: localhost/nextcloud
+    networks:
+      - apps
+      - nextcloud
+    env_file: .env
+    volumes:
+      - apps:/var/www/html/custom_apps
+      - config:/var/www/html/config
+      - data:/var/www/html/data"
+    deploy:
+      restart_policy:
+        condition: on-failure
+      labels:
+        traefik.enable: "true"
+        traefik.backend: nextcloud
+        traefik.port: 80
+        traefik.frontend.rule: Host:cloud.${DOMAIN}
+        traefik.frontend.headers.customFrameOptionsValue: "DENY"
+        traefik.frontend.headers.contentTypeNosniff: "true"
+        traefik.frontend.headers.browserXSSFilter: "true"
+
+  postgres:
+    image: postgres:alpine
+    networks:
+      - nextcloud
+    env_file: .env
+    volumes:
+      - postgres:/var/lib/postgresql/data
+      - ./nextcloud.sql:/docker-entrypoint-initdb.d/nextcloud.sql
+
+      redis:
+        image: redis:alpine
+        restart: always
+        networks:
+          - internal
+        sysctls:
+          - net.core.somaxconn=4096
+          # - vm.overcommit_memory=1
+        volumes:
+          - "${DATA_DIR}/redis:/data"
+        labels:
+          - "traefik.enable=false"
+
+  redis:
+    image: redis:alpine
+    networks:
+      - nextcloud
+    sysctls:
+      - net.core.somaxconn=4096
+      # - vm.overcommit_memory=1
+    volumes:
+      - redis:/data
+
+  elasticsearch:
+    build: ./elasticsearch
+    image: localhost/elasticsearch-oss
+    networks:
+      - nextcloud
+    env_file: .env
+    # sysctls:
+    #   - vm.max_map_count=262144 # bug OCI runtime create failed: sysctl "vm.max_map_count" is not in a separate kernel namespace: unknown https://github.com/moby/moby/issues/30778
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - elasticsearch:/usr/share/elasticsearch/data
