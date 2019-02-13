@@ -4,9 +4,6 @@ networks:
   apps:
     external: true
 
-volumes:
-  data:
-
 services:
   glances:
     image: nicolargo/glances:latest-alpine
@@ -16,7 +13,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - "GLANCES_OPT=-w"
+      GLANCES_OPT: -w
     deploy:
       placement:
         constraints:
