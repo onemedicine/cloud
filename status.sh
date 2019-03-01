@@ -2,7 +2,7 @@
 
 WKDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-for stack in rp dl
+for stack in blog drive irc matrix monitoring paste rp torrent vpn
 do
   echo ================================================================================ $stack
   echo
