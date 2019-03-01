@@ -33,7 +33,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik-etc:/etc/traefik
     networks:
-      - app
+      - apps
     ports:
       - target: 80
         published: 80

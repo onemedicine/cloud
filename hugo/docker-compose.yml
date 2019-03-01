@@ -4,19 +4,18 @@ networks:
   apps:
     external: true
 
-  volumes:
-    hugo-data:
+volumes:
+  hugo-data:
 
 services:
   hugo:
-    build: ./hugo
-    image: local/hugo
+    image: monachus/hugo
     command:
       - --baseURL=https://hugo.${DOMAIN}
       - --appendPort=false
       - --bind=0.0.0.0
       - --buildDrafts
-      - --theme=bleak
+      # - --theme=bleak
       - --cleanDestinationDir
       - --gc
       - --verbose

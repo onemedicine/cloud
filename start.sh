@@ -3,6 +3,7 @@
 WKDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 docker network create --driver overlay apps
+docker network create --driver overlay vpn
 docker stack deploy --compose-file ./cloudtorrent/docker-compose.yml torrent
 docker stack deploy --compose-file ./glances/docker-compose.yml monitoring
 docker stack deploy --compose-file ./hugo/docker-compose.yml blog

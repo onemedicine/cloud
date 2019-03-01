@@ -7,7 +7,7 @@ networks:
 services:
   glances:
     image: nicolargo/glances:latest-alpine
-    pid: host
+    # pid: host
     networks:
       - apps
     volumes:

@@ -13,10 +13,13 @@ volumes:
   nextcloud-elasticsearch:
   nextcloud-redis:
 
+configs:
+  database: 
+    file: ./postgres.sql
+
 services:
   nextcloud:
-    build: ./nextcloud
-    image: local/nextcloud
+    image: nextcloud:15
     networks:
       - apps
       - nextcloud
@@ -38,11 +41,13 @@ services:
         traefik.frontend.headers.browserXSSFilter: "true"
 
   postgres:
-    build: ./postgres
-    image: local/postgres
+    image: postgres:11-alpine
     networks:
       - nextcloud
     env_file: .env
+    configs:
+      - source: database
+        target: /docker-entrypoint-initdb.d/nextcloud.sql
     volumes:
       - nextcloud-postgres:/var/lib/postgresql/data
 
@@ -50,23 +55,22 @@ services:
     image: redis:alpine
     networks:
       - nextcloud
-    sysctls:
-      - net.core.somaxconn=4096
-      # - vm.overcommit_memory=1
+    # sysctls:
+    # - syscnet.core.somaxconn=4096
+    # - syscvm.overcommit_memory=1
     volumes:
       - nextcloud-redis:/data
 
   elasticsearch:
-    build: ./elasticsearch
-    image: local/elasticsearch-oss
+    image: elasticsearch:6.6.1
     networks:
       - nextcloud
     env_file: .env
     # sysctls:
     #   - vm.max_map_count=262144 # bug OCI runtime create failed: sysctl "vm.max_map_count" is not in a separate kernel namespace: unknown https://github.com/moby/moby/issues/30778
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
+    # ulimits:
+    #   memlock:
+    #     soft: -1
+    #     hard: -1
     volumes:
       - nextcloud-elasticsearch:/usr/share/elasticsearch/data

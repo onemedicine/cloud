@@ -12,7 +12,6 @@ services:
     image: thelounge/lounge:alpine
     networks:
       - apps
-    env_file: .env
     volumes:
       - thelounge-data:/var/opt/thelounge
     deploy:
