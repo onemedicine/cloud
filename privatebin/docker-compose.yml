@@ -15,16 +15,13 @@ services:
     volumes:
       - privatebin-data:/srv/data
     deploy:
-      placement:
-        constraints:
-          - node.role == manager
       restart_policy:
         condition: on-failure
       labels:
         traefik.enable: "true"
+        traefik.backend: privatebin
         traefik.port: 8080
-        traefik.backend: "privatebin"
-        traefik.frontend.rule: "Host:privatebin.${DOMAIN},paste.${DOMAIN}"
+        traefik.frontend.rule: Host:privatebin.${DOMAIN},paste.${DOMAIN}
         traefik.frontend.headers.customFrameOptionsValue: "DENY"
         traefik.frontend.headers.contentTypeNosniff: "true"
         traefik.frontend.headers.browserXSSFilter: "true"

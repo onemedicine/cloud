@@ -22,10 +22,10 @@ services:
         condition: on-failure
       labels:
         traefik.enable: "true"
+        traefik.backend: glances
         traefik.port: 61208
-        traefik.backend: "glances"
-        traefik.frontend.auth.basic.users: "${ADMIN}:$$apr1$$O0LDFg8Y$$d3vfb28aMKIjdHi26MJ0g0"
-        traefik.frontend.rule: "Host:glances.${DOMAIN}"
+        traefik.frontend.auth.basic.users: ${ADMIN}:${PASSWORD}
+        traefik.frontend.rule: Host:glances.${DOMAIN}
         traefik.frontend.headers.customFrameOptionsValue: "DENY"
         traefik.frontend.headers.contentTypeNosniff: "true"
         traefik.frontend.headers.browserXSSFilter: "true"

@@ -6,25 +6,25 @@ networks:
   nextcloud:
 
 volumes:
-  apps:
-  config:
-  data:
-  postgres:
-  elasticsearch:
-  redis
+  nextcloud-apps:
+  nextcloud-config:
+  nextcloud-data:
+  nextcloud-postgres:
+  nextcloud-elasticsearch:
+  nextcloud-redis:
 
 services:
   nextcloud:
-    build: .
-    image: localhost/nextcloud
+    build: ./nextcloud
+    image: local/nextcloud
     networks:
       - apps
       - nextcloud
     env_file: .env
     volumes:
-      - apps:/var/www/html/custom_apps
-      - config:/var/www/html/config
-      - data:/var/www/html/data"
+      - nextcloud-apps:/var/www/html/custom_apps
+      - nextcloud-config:/var/www/html/config
+      - nextcloud-data:/var/www/html/data"
     deploy:
       restart_policy:
         condition: on-failure
@@ -38,26 +38,13 @@ services:
         traefik.frontend.headers.browserXSSFilter: "true"
 
   postgres:
-    image: postgres:alpine
+    build: ./postgres
+    image: local/postgres
     networks:
       - nextcloud
     env_file: .env
     volumes:
-      - postgres:/var/lib/postgresql/data
-      - ./nextcloud.sql:/docker-entrypoint-initdb.d/nextcloud.sql
-
-      redis:
-        image: redis:alpine
-        restart: always
-        networks:
-          - internal
-        sysctls:
-          - net.core.somaxconn=4096
-          # - vm.overcommit_memory=1
-        volumes:
-          - "${DATA_DIR}/redis:/data"
-        labels:
-          - "traefik.enable=false"
+      - nextcloud-postgres:/var/lib/postgresql/data
 
   redis:
     image: redis:alpine
@@ -67,11 +54,11 @@ services:
       - net.core.somaxconn=4096
       # - vm.overcommit_memory=1
     volumes:
-      - redis:/data
+      - nextcloud-redis:/data
 
   elasticsearch:
     build: ./elasticsearch
-    image: localhost/elasticsearch-oss
+    image: local/elasticsearch-oss
     networks:
       - nextcloud
     env_file: .env
@@ -82,4 +69,4 @@ services:
         soft: -1
         hard: -1
     volumes:
-      - elasticsearch:/usr/share/elasticsearch/data
+      - nextcloud-elasticsearch:/usr/share/elasticsearch/data

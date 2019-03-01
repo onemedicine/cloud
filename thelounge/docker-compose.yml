@@ -5,7 +5,7 @@ networks:
     external: true
 
 volumes:
-  data:
+  thelounge-data:
 
 services:
   thelounge:
@@ -14,7 +14,7 @@ services:
       - apps
     env_file: .env
     volumes:
-      - data:/var/opt/thelounge
+      - thelounge-data:/var/opt/thelounge
     deploy:
       restart_policy:
         condition: on-failure

@@ -5,7 +5,7 @@ networks:
     external: true
 
 volumes:
-  etc:
+  traefik-etc:
 
 services:
   traefik:
@@ -31,7 +31,7 @@ services:
       # - --logLevel=DEBUG
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - etc:/etc/traefik
+      - traefik-etc:/etc/traefik
     networks:
       - app
     ports:
@@ -51,7 +51,7 @@ services:
         traefik.enable: "true"
         traefik.backend: traefik
         traefik.port: 8080
-        traefik.frontend.auth.basic.users: ${ADMIN}:$$apr1$$acldxzHL$$aIE2PcUEFioj4PyUvBw/Q.
+        traefik.frontend.auth.basic.users: ${ADMIN}:${PASSWORD}
         traefik.frontend.rule: Host:traefik.${DOMAIN}
         traefik.frontend.headers.customFrameOptionsValue: DENY
         traefik.frontend.headers.contentTypeNosniff: "true"
