@@ -23,7 +23,6 @@ services:
         traefik.backend: cloudtorrent
         traefik.port: 80
         traefik.frontend.rule: Host:torrents.${DOMAIN}
-        traefik.frontend.auth.basic.users: ${ADMIN}:${PASSWORD}
         traefik.frontend.headers.customFrameOptionsValue: "DENY"
         traefik.frontend.headers.contentTypeNosniff: "true"
         traefik.frontend.headers.browserXSSFilter: "true"
