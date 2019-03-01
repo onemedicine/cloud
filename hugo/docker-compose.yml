@@ -1,0 +1,35 @@
+version: "3.7"
+
+networks:
+  apps:
+    external: true
+
+  volumes:
+    hugo-data:
+
+services:
+  hugo:
+    build: ./hugo
+    image: local/hugo
+    command:
+      - --baseURL=https://hugo.${DOMAIN}
+      - --appendPort=false
+      - --bind=0.0.0.0
+      - --buildDrafts
+      - --theme=bleak
+      - --cleanDestinationDir
+      - --gc
+      - --verbose
+      - server
+    networks:
+      - apps
+    volumes:
+      - hugo-data:/site
+    labels:
+      traefik.enable: "true"
+      traefik.backend: hugo
+      traefik.port: 1313
+      traefik.frontend.rule: Host:hugo.${DOMAIN},blog.${DOMAIN}
+      traefik.frontend.headers.customFrameOptionsValue: "DENY"
+      traefik.frontend.headers.contentTypeNosniff: "true"
+      traefik.frontend.headers.browserXSSFilter: "true"
