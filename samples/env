@@ -1,0 +1,9 @@
+DOMAIN=your.domain
+
+ADMIN=you
+ADMIN_HTPASSWD=(htpasswd -nb user password)
+
+DATA_DIR=volumes
+
+POSTGRES_PASSWORD=(something like uuidgen)
+MYSQL_ROOT_PASSWORD=(another uuidgen)

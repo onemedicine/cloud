@@ -2,3 +2,6 @@
 .ftpconfig
 experimental
 .htpasswd*
+
+scripts/postgres.sql
+scripts/mariadb.sql
