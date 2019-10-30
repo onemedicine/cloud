@@ -1,4 +1,4 @@
-version: '3.7'
+version: "3.7"
 
 ###############################################################################
 #                                   Network                                   #
@@ -35,7 +35,7 @@ services:
       - --acme.onHostRule
       - --acme.storage=/etc/traefik/acme.json
       # - --logLevel=DEBUG
-      - --sendAnonymousUsage=false 
+      - --sendAnonymousUsage=false
     labels:
       traefik.enable: "true"
       traefik.backend: traefik
@@ -52,9 +52,9 @@ services:
       - "/var/run/docker.sock:/var/run/docker.sock"
       - "${DATA_DIR}/traefik:/etc/traefik"
 
-###############################################################################
-#                                  App                                        #
-###############################################################################
+  ###############################################################################
+  #                                  App                                        #
+  ###############################################################################
 
   # # Blog
   # ghost:
@@ -76,7 +76,7 @@ services:
   # hugo:
   #   build: hugo
   #   image: localhost/hugo
-  #   command: 
+  #   command:
   #     - --baseURL=https://blog.${DOMAIN}
   #     - --appendPort=false
   #     - --bind=0.0.0.0
@@ -162,7 +162,7 @@ services:
   #     - "traefik.frontend.rule=Host:riot.${DOMAIN},matrix.${DOMAIN}"
 
   # mailpile:
-  #   build: 
+  #   build:
   #     context: "https://github.com/mailpile/mailpile"
   #   image: mailpile/mailpile:master
   #   networks:
@@ -208,7 +208,7 @@ services:
   #     - "${DATA_DIR}/duplicati/config:/config"
   #     - "${DATA_DIR}/duplicati/backups:/backups"
   #     - "${DATA_DIR}/duplicati/source:/source"
-  #   labels: 
+  #   labels:
   #     - "traefik.enable=true"
   #     - "traefik.port=8200"
   #     - "traefik.backend=duplicati"
@@ -232,7 +232,7 @@ services:
   #       protocol: tcp
   #       mode: host
   #   env_file: .env.softether
-  #   volumes: 
+  #   volumes:
   #      - "${DATA_DIR}/softether/vpn_server.config:/opt/vpn_server.config"
   #   labels:
   #     - "traefik.enable=false"
@@ -268,8 +268,8 @@ services:
       traefik.network: island_web
       traefik.port: 3000
       traefik.frontend.rule: Host:torrents.${DOMAIN}
-  
-  # Youtube-DL  
+
+  # Youtube-DL
   # ytdl:
   #   image: kmb32123/youtube-dl-server:alpine
   #   restart: always
@@ -287,8 +287,8 @@ services:
   #     - "traefik.frontend.redirect.regex=^https?://([^/]*)/?$$"
   #     - "traefik.frontend.redirect.replacement=https://$$1/youtube-dl"
   #     - "traefik.frontend.redirect.permanent=true"
-  
-  # # Manage photos 
+
+  # # Manage photos
   # photoprism:
   #   image: photoprism/photoprism
   #   restart: always
@@ -306,10 +306,15 @@ services:
   #     - "traefik.frontend.rule=Host:photoprism.${DOMAIN}"
   #     - "traefik.frontend.auth.basic.users=${ADMIN_HTPASSWD}"
 
+  # Music download manager
   headphones:
     image: linuxserver/headphones
-    container_name: headphones
-    env_file: .env.headphones
+    restart: always
+    init: true
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Paris
     volumes:
       - ${DATA_DIR}/headphones/config:/config
       - ${DATA_DIR}/headphones/downloads:/downloads
@@ -322,10 +327,15 @@ services:
       traefik.frontend.rule: Host:headphones.${DOMAIN}
       # traefik.frontend.auth.basic.users: ${ADMIN_HTPASSWD}
 
+  # eBooks manager
   cops:
     image: linuxserver/cops
-    container_name: cops
-    env_file: .env.cops
+    restart: always
+    init: true
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Paris
     volumes:
       - ${DATA_DIR}/cops/config:/config
       - ${DATA_DIR}/cops/books:/books
@@ -334,15 +344,33 @@ services:
       traefik.backend: cops
       traefik.network: island_web
       traefik.port: 80
-      traefik.frontend.rule: Host:cops.${DOMAIN}
+      traefik.frontend.rule: Host:cops.${DOMAIN},ebooks.${DOMAIN}
       # traefik.frontend.auth.basic.users: ${ADMIN_HTPASSWD}
 
+  # Download manager
+  pyload:
+    image: linuxserver/pyload
+    restart: always
+    init: true
+    container_name: pyload
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Paris
+    volumes:
+      - ${DATA_DIR}/pyload/config:/config
+      - ${DATA_DIR}/pyload/downloads:/downloads
+    labels:
+      traefik.enable: true
+      traefik.backend: pyload
+      traefik.network: island_web
+      traefik.port: 8000
+      traefik.frontend.rule: Host:dl.${DOMAIN},pyload.${DOMAIN}
+      # traefik.frontend.auth.basic.users: ${ADMIN_HTPASSWD}
 
-
-
-###############################################################################
-#                               Internal zone                                 #
-###############################################################################
+  ###############################################################################
+  #                               Internal zone                                 #
+  ###############################################################################
 
   # mariadb:
   #   image: mariadb:10
@@ -415,7 +443,7 @@ services:
   #   labels:
   #     traefik.enable: "false"
 
-  # # Monitoring 
+  # # Monitoring
   # cadvisor:
   #   image: google/cadvisor
   #   restart: always
@@ -433,23 +461,6 @@ services:
   #     - "traefik.network=island_internal"
   #     - "traefik.frontend.auth.basic.users=${ADMIN}:$$apr1$$ot35v8Up$$0yTQ2LLJqsmPT5SE5W6MF/"
   #     - "traefik.frontend.rule=Host:cadvisor.${DOMAIN}"
-
-  # # Monitoring 
-  # netdata:
-  #   image: titpetric/netdata
-  #   restart: always
-  #   networks:
-  #     - internal
-  #   volumes:
-  #     - /proc:/host/proc:ro
-  #     - /sys:/host/sys:ro
-  #   labels:
-  #     - "traefik.enable=true"
-  #     - "traefik.port=19999"
-  #     - "traefik.backend=netdata"
-  #     - "traefik.network=island_internal"
-  #     - "traefik.frontend.auth.basic.users=${ADMIN}:$$apr1$$6KCb.oNU$$FOG89Lv5PReyNPcL3cCdD1"
-  #     - "traefik.frontend.rule=Host:netdata.${DOMAIN}"
 
   # # Monitoring
   # glances:
@@ -470,6 +481,28 @@ services:
   #     - "traefik.frontend.auth.basic.users=${ADMIN}:$$apr1$$O0LDFg8Y$$d3vfb28aMKIjdHi26MJ0g0"
   #     - "traefik.frontend.rule=Host:glances.${DOMAIN}"
 
+  # Monitoring
+  netdata:
+    image: netdata/netdata
+    restart: always
+    init: true
+    hostname: ${DOMAIN}
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - apparmor:unconfined
+    volumes:
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+    labels:
+      traefik.enable: true
+      traefik.port: 19999
+      traefik.backend: netdata
+      traefik.network: island_internal"
+      traefik.frontend.rule: Host:netdata.${DOMAIN},monitoring.${DOMAIN}
+      # traefik.frontend.auth.basic.users: ${ADMIN}:$$apr1$$O0LDFg8Y$$d3vfb28aMKIjdHi26MJ0g0"
   # # Backup
   # restic:
   #   image: lobaro/restic-backup-docker
@@ -482,5 +515,3 @@ services:
   #     - .env.restic
   #   labels:
   #     - "traefik.enable=false"
-
-    
