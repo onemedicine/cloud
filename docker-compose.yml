@@ -117,20 +117,21 @@ services:
       traefik.port: 80
       traefik.frontend.rule: Host:cloud.${DOMAIN}
 
-  # privatebin:
-  #   image: privatebin/nginx-fpm-alpine
-  #   restart: always
-  #   init: true
-  #   networks:
-  #     - internal
-  #   volumes:
-  #     - "${DATA_DIR}/privatebin:/srv/data"
-  #   labels:
-  #     traefik.enable: "true"
-  #     traefik.backend: privatebin
-  #     traefik.network: "island_internal"
-  #     traefik.port: 80
-  #     traefik.frontend.rule: Host:privatebin.${DOMAIN},paste.${DOMAIN}
+  privatebin:
+    image: privatebin/nginx-fpm-alpine
+    restart: always
+    init: true
+    read_only: true
+    networks:
+      - internal
+    volumes:
+      - "${DATA_DIR}/privatebin:/srv/data"
+    labels:
+      traefik.enable: "true"
+      traefik.backend: privatebin
+      traefik.network: "island_internal"
+      traefik.port: 80
+      traefik.frontend.rule: Host:paste.${DOMAIN}
 
   thelounge:
     image: thelounge/thelounge:alpine
@@ -304,6 +305,40 @@ services:
   #     - "traefik.port=80"
   #     - "traefik.frontend.rule=Host:photoprism.${DOMAIN}"
   #     - "traefik.frontend.auth.basic.users=${ADMIN_HTPASSWD}"
+
+  headphones:
+    image: linuxserver/headphones
+    container_name: headphones
+    env_file: .env.headphones
+    volumes:
+      - ${DATA_DIR}/headphones/config:/config
+      - ${DATA_DIR}/headphones/downloads:/downloads
+      - ${DATA_DIR}/headphones/music:/music
+    labels:
+      traefik.enable: true
+      traefik.backend: headphones
+      traefik.network: island_web
+      traefik.port: 8181
+      traefik.frontend.rule: Host:headphones.${DOMAIN}
+      # traefik.frontend.auth.basic.users: ${ADMIN_HTPASSWD}
+
+  cops:
+    image: linuxserver/cops
+    container_name: cops
+    env_file: .env.cops
+    volumes:
+      - ${DATA_DIR}/cops/config:/config
+      - ${DATA_DIR}/cops/books:/books
+    labels:
+      traefik.enable: true
+      traefik.backend: cops
+      traefik.network: island_web
+      traefik.port: 80
+      traefik.frontend.rule: Host:cops.${DOMAIN}
+      # traefik.frontend.auth.basic.users: ${ADMIN_HTPASSWD}
+
+
+
 
 ###############################################################################
 #                               Internal zone                                 #
